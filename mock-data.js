@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'HELPDESK_PRO_DATA_V5';
+const STORAGE_KEY = 'HELPDESK_PRO_DATA_V6';
 
 const INITIAL_SECTORS = [
   { id: 'sec-1', name: 'Tecnologia & TI', code: 'TI', icon: 'fa-server', color: '#6366f1' },
@@ -49,6 +49,7 @@ class HelpDeskStorage {
       localStorage.removeItem('HELPDESK_PRO_DATA_V2');
       localStorage.removeItem('HELPDESK_PRO_DATA_V3');
       localStorage.removeItem('HELPDESK_PRO_DATA_V4');
+      localStorage.removeItem('HELPDESK_PRO_DATA_V5');
     } catch (e) {}
 
     try {
@@ -59,12 +60,28 @@ class HelpDeskStorage {
         if (!parsed.users || parsed.users.length === 0) {
           parsed.users = INITIAL_USERS;
         }
-        // Assegura username para cada usuário
+        // Assegura username e password para cada usuário
         parsed.users.forEach(u => {
           if (!u.username) {
             u.username = u.email ? u.email.split('@')[0] : (u.role === 'admin' ? 'admin' : `user${u.id}`);
           }
+          if (!u.password) {
+            u.password = u.role === 'admin' ? 'admin' : '123456';
+          }
         });
+
+        // Sincroniza currentUser com a sessão autenticada ativa
+        const session = localStorage.getItem('HELPDESK_AUTH_SESSION');
+        if (session) {
+          try {
+            const { userId } = JSON.parse(session);
+            const authUser = parsed.users.find(u => u.id === userId);
+            if (authUser) {
+              parsed.currentUser = authUser;
+            }
+          } catch(e) {}
+        }
+
         return parsed;
       }
     } catch (e) {
@@ -184,7 +201,14 @@ class HelpDeskStorage {
     });
 
     this.saveData();
-    this.syncWithSheets('registerSolution', { ticketId, ...solutionData });
+    this.syncWithSheets('registerSolution', {
+      ticketId,
+      userEmail: ticket.userEmail || (ticket.userId ? (this.getUserById(ticket.userId) || {}).email : ''),
+      userName: ticket.userName,
+      title: ticket.title,
+      sectorName: ticket.sectorName,
+      ...solutionData
+    });
     return ticket;
   }
 
@@ -419,7 +443,26 @@ class HelpDeskStorage {
           if (json.tickets && json.tickets.length > 0) this.data.tickets = json.tickets;
           if (json.sectors && json.sectors.length > 0) this.data.sectors = json.sectors;
           if (json.problemTypes && json.problemTypes.length > 0) this.data.problemTypes = json.problemTypes;
-          if (json.users && json.users.length > 0) this.data.users = json.users;
+          if (json.users && json.users.length > 0) {
+            // Mescla usuários da planilha com usuários locais criados
+            const userMap = new Map();
+            this.data.users.forEach(u => userMap.set(u.id, u));
+            json.users.forEach(u => userMap.set(u.id, Object.assign({}, userMap.get(u.id) || {}, u)));
+            this.data.users = Array.from(userMap.values());
+          }
+
+          // Reafirma a sessão do usuário atualmente logado
+          const session = localStorage.getItem('HELPDESK_AUTH_SESSION');
+          if (session) {
+            try {
+              const { userId } = JSON.parse(session);
+              const authUser = this.data.users.find(u => u.id === userId);
+              if (authUser) {
+                this.data.currentUser = authUser;
+              }
+            } catch(e) {}
+          }
+
           this.saveData();
           return true;
         }

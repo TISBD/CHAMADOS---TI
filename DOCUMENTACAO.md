@@ -633,6 +633,18 @@ Abaixo estão melhorias prontas para serem implementadas no seu fluxo de evoluç
   - Para adicionar mais administradores, basta cadastrar um usuário ou editar um existente com o perfil **Administrador**.
   - Qualquer administrador pode ser removido, inclusive o administrador inicial (`admin`), contanto que exista **pelo menos 1 administrador ativo** no sistema (proteção contra bloqueio total).
 
+### 10.4 Níveis de Acesso e Notificação Automática por E-mail
+- **Perfil Colaborador / Padrão (`user`)**:
+  - Acesso **exclusivo** ao painel de abertura e acompanhamento dos seus próprios chamados.
+  - As abas analíticas (*Dashboard Mensal*), base de conhecimento (*Soluções & KB*) e configurações (*Gestão & Controle*) ficam completamente ocultas e bloqueadas.
+- **Notificação Automática por E-mail ao Encerrar Chamado**:
+  - Quando a equipe de suporte registra a solução técnica e conclui o atendimento, o backend do **Google Apps Script** dispara automaticamente um e-mail com layout corporativo HTML para o e-mail do colaborador vinculado ao chamado.
+  - O e-mail contém:
+    - Número do protocolo (`#TICK-...`).
+    - Assunto e setor do chamado.
+    - Nome do técnico que atendeu.
+    - Descrição detalhada da **Solução Técnica Aplicada** e eventuais notas preventivas.
+
 ---
 
 *Documentação elaborada para o time de TI e desenvolvimento. Dúvidas ou novas implementações podem ser integradas diretamente nas próximas versões.*

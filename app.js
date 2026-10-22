@@ -37,13 +37,16 @@ class AppController {
     this.setupTheme();
     this.setupAuth();
 
-    // Se não estiver logado, exibe a tela de login e aguarda autenticação
-    if (!window.db.getAuthenticatedUser()) {
+    // Se não estiver logado, exibe a tela de login e interrompe
+    const authUser = window.db.getAuthenticatedUser();
+    if (!authUser) {
       this.showLoginScreen();
       return;
     }
 
     this.hideLoginScreen();
+    this.updateUserBadge(authUser);
+    this.applyRolePermissions(authUser);
     this.setupUserSwitcher();
     this.setupNavigation();
     this.setupModals();
@@ -51,10 +54,13 @@ class AppController {
     this.setupForms();
     this.renderAll();
 
-    // Sincronização inicial com o Google Sheets se disponível
+    // Sincronização em segundo plano com o Google Sheets
     if (window.db && window.db.loadFromSheets) {
       window.db.loadFromSheets().then(loaded => {
         if (loaded) {
+          const current = window.db.getAuthenticatedUser() || authUser;
+          this.updateUserBadge(current);
+          this.applyRolePermissions(current);
           this.setupUserSwitcher();
           this.renderAll();
           this.showToast('Conectado à Planilha Google Sheets com sucesso!', 'success');
@@ -110,6 +116,8 @@ class AppController {
         const user = window.db.authenticate(username, password);
         if (user) {
           this.hideLoginScreen();
+          this.updateUserBadge(user);
+          this.applyRolePermissions(user);
           this.setupUserSwitcher();
           this.setupNavigation();
           this.setupModals();
@@ -200,35 +208,60 @@ class AppController {
   }
 
   updateUserBadge(user) {
-    const avatar = document.getElementById('currentUserAvatar');
-    const name = document.getElementById('currentUserName');
-    const role = document.getElementById('currentUserRole');
+    if (!user) return;
 
-    if (avatar) avatar.src = user.avatar;
-    if (name) name.innerText = user.name;
-    if (role) {
-      role.className = `role-badge role-${user.role}`;
-      role.innerText = user.role === 'admin' ? 'ADMINISTRADOR' : user.role === 'tech' ? 'SUPORTE TÉCNICO' : 'COLABORADOR';
+    // Topbar
+    const topAvatar = document.getElementById('currentUserAvatar');
+    const topName = document.getElementById('currentUserName');
+    const topRole = document.getElementById('currentUserRole');
+
+    const roleName = user.role === 'admin' ? 'ADMINISTRADOR' : user.role === 'tech' ? 'SUPORTE TÉCNICO' : 'COLABORADOR';
+    const roleClass = `role-badge role-${user.role}`;
+
+    if (topAvatar) topAvatar.src = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=6366f1&color=fff`;
+    if (topName) topName.innerText = user.name;
+    if (topRole) {
+      topRole.className = roleClass;
+      topRole.innerText = roleName;
+    }
+
+    // Sidebar Footer
+    const sideAvatar = document.getElementById('sidebarUserAvatar');
+    const sideName = document.getElementById('sidebarUserName');
+    const sideRole = document.getElementById('sidebarUserRole');
+
+    if (sideAvatar) sideAvatar.src = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=6366f1&color=fff`;
+    if (sideName) sideName.innerText = user.name;
+    if (sideRole) {
+      sideRole.className = roleClass;
+      sideRole.innerText = roleName;
     }
   }
 
   applyRolePermissions(user) {
+    if (!user) return;
     const adminTabs = document.querySelectorAll('.admin-only');
     const adminCards = document.querySelectorAll('.admin-feature');
+    const staffTabs = document.querySelectorAll('.staff-only');
 
+    // Gestão de abas de Administrador
     if (user.role === 'admin') {
       adminTabs.forEach(el => el.classList.remove('d-none'));
       adminCards.forEach(el => el.classList.remove('d-none'));
     } else {
-      adminTabs.forEach(el => {
-        if (el.dataset.tab === 'management') {
-          el.classList.add('d-none');
-        }
-      });
-      // Se estava na aba de gestão, volta para chamados
-      if (this.currentTab === 'management') {
+      adminTabs.forEach(el => el.classList.add('d-none'));
+      adminCards.forEach(el => el.classList.add('d-none'));
+    }
+
+    // Perfil Padrão (Colaborador comum): Apenas abertura e acompanhamento de chamados
+    if (user.role === 'user') {
+      staffTabs.forEach(el => el.classList.add('d-none'));
+      // Se estiver em outra aba (dashboard, kb, gestão), redireciona obrigatoriamente para chamados
+      if (this.currentTab !== 'tickets') {
         this.switchTab('tickets');
       }
+    } else {
+      staffTabs.forEach(el => el.classList.remove('d-none'));
     }
   }
 
@@ -261,6 +294,13 @@ class AppController {
 
   switchTab(tabName) {
     const user = window.db.getCurrentUser();
+    
+    // Bloqueios de perfil
+    if (user.role === 'user' && tabName !== 'tickets') {
+      this.showToast('Acesso exclusivo ao painel de chamados para colaboradores.', 'info');
+      return;
+    }
+
     if (tabName === 'management' && user.role !== 'admin') {
       this.showToast('Acesso restrito: Apenas administradores têm acesso à Gestão e Controle.', 'error');
       return;
