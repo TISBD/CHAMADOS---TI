@@ -412,7 +412,7 @@ Para conectar o sistema à planilha, basta criar um arquivo `sheets-config.js` o
 
 ```javascript
 // sheets-config.js
-const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/SUA_URL_AQUI/exec";
+const GOOGLE_SHEETS_API_URL = "https://script.google.com/a/macros/sbdespachos.com.br/s/AKfycbwDIrUR8ceT4Mq2OBJmnZJ09v-ZVhD_y98HS8sYVFUYQNCRmbDoRVjkIlZOYMa_V-YR/exec";
 
 class SheetsAPIAdapter {
   constructor(apiUrl) {

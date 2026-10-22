@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'HELPDESK_PRO_DATA_V3';
+const STORAGE_KEY = 'HELPDESK_PRO_DATA_V4';
 
 const INITIAL_SECTORS = [
   { id: 'sec-1', name: 'Tecnologia & TI', code: 'TI', icon: 'fa-server', color: '#6366f1' },
@@ -26,6 +26,7 @@ const INITIAL_USERS = [
     id: 'usr-admin',
     name: 'Administrador TI',
     email: 'admin@empresa.com',
+    password: 'admin123',
     role: 'admin',
     sectorId: 'sec-1',
     sectorName: 'Tecnologia & TI',
@@ -37,6 +38,7 @@ const INITIAL_USERS = [
 
 // Gerador de chamados retroativos ao longo de 2026 (meses 1 a 10) para alimentar perfeitamente o Dashboard Mês a Mês
 function generateMockTickets() {
+  return [];
   const currentYear = 2026;
   const sampleTickets = [
     // Mês 1 - Janeiro
@@ -1025,6 +1027,7 @@ class HelpDeskStorage {
       id: `usr-${Date.now()}`,
       name: userData.name,
       email: userData.email,
+      password: userData.password || '123456',
       role: userData.role || 'user',
       sectorId: sector ? sector.id : 'sec-1',
       sectorName: sector ? sector.name : 'Geral',
@@ -1063,6 +1066,55 @@ class HelpDeskStorage {
       return user;
     }
     return null;
+  }
+
+  // Métodos de Autenticação
+  authenticate(login, password) {
+    const cleanLogin = (login || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    const user = this.data.users.find(u => {
+      const emailMatch = (u.email || '').toLowerCase() === cleanLogin;
+      const nameMatch = (u.name || '').toLowerCase() === cleanLogin;
+      const adminAlias = (cleanLogin === 'admin' && u.role === 'admin');
+      if (!emailMatch && !nameMatch && !adminAlias) return false;
+
+      // Validação de senha
+      const userPass = u.password || 'admin123';
+      return cleanPass === userPass || (u.role === 'admin' && (cleanPass === 'admin123' || cleanPass === 'admin'));
+    });
+
+    if (user) {
+      this.data.currentUser = user;
+      try {
+        localStorage.setItem('HELPDESK_AUTH_SESSION', JSON.stringify({ userId: user.id, loggedAt: Date.now() }));
+      } catch(e) {}
+      this.saveData();
+      return user;
+    }
+    return null;
+  }
+
+  getAuthenticatedUser() {
+    try {
+      const session = localStorage.getItem('HELPDESK_AUTH_SESSION');
+      if (session) {
+        const { userId } = JSON.parse(session);
+        const user = this.data.users.find(u => u.id === userId);
+        if (user) {
+          this.data.currentUser = user;
+          return user;
+        }
+      }
+    } catch(e) {}
+    return null;
+  }
+
+  logout() {
+    try {
+      localStorage.removeItem('HELPDESK_AUTH_SESSION');
+    } catch(e) {}
+    this.data.currentUser = null;
   }
 
   // Sincronização com o Google Sheets

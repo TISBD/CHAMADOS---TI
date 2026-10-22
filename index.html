@@ -24,7 +24,52 @@
 </head>
 <body>
 
-  <div class="app-layout">
+  <!-- ========================================== -->
+  <!-- TELA DE AUTENTICAÇÃO (LOGIN)               -->
+  <!-- ========================================== -->
+  <div id="loginScreen" class="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-brand-icon">
+          <i class="fa-solid fa-headset"></i>
+        </div>
+        <h2>HelpDesk Pro</h2>
+        <p class="login-subtitle">Sistema Integrado de Suporte de TI & Gestão</p>
+      </div>
+
+      <form id="formLogin" class="login-form">
+        <div class="form-group mb-3">
+          <label for="loginEmail"><i class="fa-solid fa-user"></i> E-mail ou Usuário *</label>
+          <input type="text" id="loginEmail" class="form-control" placeholder="admin@empresa.com" required autocomplete="username">
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="loginPassword"><i class="fa-solid fa-lock"></i> Senha de Acesso *</label>
+          <div class="password-input-wrapper">
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" id="btnTogglePassword" class="btn-toggle-pwd" title="Mostrar/Ocultar Senha">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="loginErrorMsg" class="login-error-alert d-none">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="loginErrorText">E-mail ou senha inválidos.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 btn-login">
+          <i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema
+        </button>
+
+        <div class="login-footer-hint">
+          <small><i class="fa-solid fa-key"></i> Administrador: <strong>admin@empresa.com</strong> | Senha: <strong>admin123</strong></small>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-layout" id="appLayout">
     <!-- Sidebar Lateral -->
     <aside class="app-sidebar">
       <div class="sidebar-header">
@@ -64,13 +109,20 @@
         </a>
       </nav>
 
-      <!-- Alternador Rápido de Usuário (Simulação de Perfis) -->
+      <!-- Sessão do Usuário Autenticado & Logout -->
       <div class="sidebar-footer">
-        <div class="user-switcher-card">
-          <label for="userSwitcherSelect"><i class="fa-solid fa-arrows-rotate"></i> Alternar Usuário Ativo:</label>
-          <select id="userSwitcherSelect" class="select-user-switcher" title="Alterne entre perfis de Administrador, Técnico ou Usuário comum">
-            <!-- Populado via app.js -->
-          </select>
+        <div class="user-session-card">
+          <div class="user-session-info">
+            <img src="" id="sidebarUserAvatar" class="avatar-sm" alt="Avatar">
+            <div class="user-session-text">
+              <strong id="sidebarUserName">Carregando...</strong>
+              <span id="sidebarUserRole" class="role-badge role-admin">ADMIN</span>
+            </div>
+          </div>
+          <button id="btnLogout" class="btn-logout" title="Sair do sistema">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Sair</span>
+          </button>
         </div>
       </div>
     </aside>
@@ -84,9 +136,9 @@
         </div>
 
         <div class="topbar-right">
-          <!-- Botão Resetar Demonstração -->
-          <button id="btnResetDatabase" class="btn-icon" title="Restaurar dados iniciais de demonstração">
-            <i class="fa-solid fa-rotate-left"></i>
+          <!-- Botão Sair / Logout -->
+          <button id="topbarBtnLogout" class="btn-icon text-danger" title="Sair da Conta">
+            <i class="fa-solid fa-right-from-bracket"></i>
           </button>
 
           <!-- Alternar Tema Dark/Light -->
@@ -119,6 +171,9 @@
             </div>
             <div class="header-actions-group">
               <span class="badge badge-counter" id="ticketResultsCount">Calculando...</span>
+              <button id="btnClearAllTickets" class="btn btn-outline btn-sm admin-only" title="Zerar todos os chamados da base" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+                <i class="fa-solid fa-trash-can"></i> Limpar Chamados
+              </button>
               <button id="btnOpenNewTicket" class="btn btn-primary">
                 <i class="fa-solid fa-plus"></i> Abrir Novo Chamado
               </button>
@@ -646,6 +701,11 @@
             <label for="newUserJobTitle">Cargo / Função *</label>
             <input type="text" id="newUserJobTitle" class="form-control" placeholder="Ex: Analista de Recursos Humanos" required>
           </div>
+
+          <div class="form-group">
+            <label for="newUserPassword">Senha de Acesso Inicial *</label>
+            <input type="password" id="newUserPassword" class="form-control" placeholder="Defina a senha para este usuário (mínimo 4 caracteres)" required minlength="4">
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -744,8 +804,9 @@
   <div id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="mock-data.js"></script>
-  <script src="chart-dashboard.js"></script>
-  <script src="app.js"></script>
+  <script src="config.js?v=5"></script>
+  <script src="mock-data.js?v=5"></script>
+  <script src="chart-dashboard.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

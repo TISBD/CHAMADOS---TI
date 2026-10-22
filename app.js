@@ -22,6 +22,18 @@ class AppController {
   }
 
   init() {
+    // Purga imediata de qualquer chamado de teste antigo que possa estar no cache do navegador
+    if (window.db && window.db.data && window.db.data.tickets) {
+      const hasMockTickets = window.db.data.tickets.some(t => 
+        t.title === 'Computador não liga após queda de energia' || 
+        (t.id && t.id.startsWith('TICK-10'))
+      );
+      if (hasMockTickets) {
+        window.db.data.tickets = [];
+        window.db.saveData();
+      }
+    }
+
     this.setupTheme();
     this.setupUserSwitcher();
     this.setupNavigation();
@@ -29,6 +41,17 @@ class AppController {
     this.setupTicketFilters();
     this.setupForms();
     this.renderAll();
+
+    // Sincronização inicial com o Google Sheets se disponível
+    if (window.db && window.db.loadFromSheets) {
+      window.db.loadFromSheets().then(loaded => {
+        if (loaded) {
+          this.setupUserSwitcher();
+          this.renderAll();
+          this.showToast('Conectado à Planilha Google Sheets com sucesso!', 'success');
+        }
+      });
+    }
   }
 
   setupTheme() {
@@ -225,6 +248,19 @@ class AppController {
       btnNewTicket.addEventListener('click', () => {
         this.openModal('modalNewTicket');
         this.populateNewTicketSelects();
+      });
+    }
+
+    // Botão Limpar Chamados (Zerar base)
+    const btnClear = document.getElementById('btnClearAllTickets');
+    if (btnClear) {
+      btnClear.addEventListener('click', () => {
+        if (confirm('Atenção: Deseja realmente zerar todos os chamados da base? Esta ação é definitiva.')) {
+          window.db.resetTickets();
+          this.renderAll();
+          if (window.dashboardManager) window.dashboardManager.render();
+          this.showToast('Todos os chamados foram removidos com sucesso! Base limpa.', 'info');
+        }
       });
     }
 
