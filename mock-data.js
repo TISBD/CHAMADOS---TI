@@ -1,5 +1,4 @@
-// Dados iniciais e gerenciador de persistência para o Sistema HelpDesk Pro
-const STORAGE_KEY = 'HELPDESK_PRO_DATA_V2';
+const STORAGE_KEY = 'HELPDESK_PRO_DATA_V3';
 
 const INITIAL_SECTORS = [
   { id: 'sec-1', name: 'Tecnologia & TI', code: 'TI', icon: 'fa-server', color: '#6366f1' },
@@ -840,7 +839,7 @@ class HelpDeskStorage {
       sectors: INITIAL_SECTORS,
       problemTypes: INITIAL_PROBLEM_TYPES,
       users: INITIAL_USERS,
-      tickets: generateMockTickets(),
+      tickets: [], // Sistema zerado e limpo para início das operações reais
       currentUser: INITIAL_USERS[0] // Admin padrão
     };
 
@@ -912,6 +911,7 @@ class HelpDeskStorage {
 
     this.data.tickets.unshift(newTicket);
     this.saveData();
+    this.syncWithSheets('createTicket', newTicket);
     return newTicket;
   }
 
@@ -921,6 +921,7 @@ class HelpDeskStorage {
 
     Object.assign(ticket, updates, { updatedAt: new Date().toISOString() });
     this.saveData();
+    this.syncWithSheets('updateTicket', ticket);
     return ticket;
   }
 
@@ -947,6 +948,7 @@ class HelpDeskStorage {
     });
 
     this.saveData();
+    this.syncWithSheets('registerSolution', { ticketId, ...solutionData });
     return ticket;
   }
 
@@ -1032,6 +1034,7 @@ class HelpDeskStorage {
     };
     this.data.users.push(newUser);
     this.saveData();
+    this.syncWithSheets('createUser', newUser);
     return newUser;
   }
 
@@ -1060,6 +1063,43 @@ class HelpDeskStorage {
       return user;
     }
     return null;
+  }
+
+  // Sincronização com o Google Sheets
+  async syncWithSheets(action, payload) {
+    if (!window.CONFIG || !window.CONFIG.GOOGLE_SHEETS_API_URL) return;
+    try {
+      await fetch(window.CONFIG.GOOGLE_SHEETS_API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, data: payload })
+      });
+      console.log(`[Google Sheets] Sincronização disparada: ${action}`);
+    } catch (err) {
+      console.warn(`[Google Sheets] Falha na sincronização:`, err);
+    }
+  }
+
+  async loadFromSheets() {
+    if (!window.CONFIG || !window.CONFIG.GOOGLE_SHEETS_API_URL) return false;
+    try {
+      const res = await fetch(`${window.CONFIG.GOOGLE_SHEETS_API_URL}?action=all`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.success) {
+          if (json.tickets && json.tickets.length > 0) this.data.tickets = json.tickets;
+          if (json.sectors && json.sectors.length > 0) this.data.sectors = json.sectors;
+          if (json.problemTypes && json.problemTypes.length > 0) this.data.problemTypes = json.problemTypes;
+          if (json.users && json.users.length > 0) this.data.users = json.users;
+          this.saveData();
+          return true;
+        }
+      }
+    } catch (e) {
+      console.info('[Google Sheets] Carregamento inicial via armazenamento local.');
+    }
+    return false;
   }
 }
 
