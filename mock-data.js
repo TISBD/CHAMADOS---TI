@@ -82,6 +82,22 @@ class HelpDeskStorage {
           } catch(e) {}
         }
 
+        // Migração: garante que dados são re-salvos após correções de autenticação
+        if (!parsed._migrationV6b) {
+          parsed._migrationV6b = true;
+          // Força normalização e re-save de todos os usuários
+          parsed.users.forEach(u => {
+            u.username = (u.username || '').trim().toLowerCase() || (u.email ? u.email.split('@')[0].toLowerCase() : `user${u.id}`);
+            u.password = (u.password || '').trim() || (u.role === 'admin' ? 'admin' : '123456');
+          });
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed)); } catch(e) {}
+          console.log('[loadData] Migração V6b aplicada - dados normalizados.');
+        }
+
+        console.log('[loadData] Usuários carregados do localStorage:', parsed.users.map(u => ({
+          id: u.id, username: u.username, passLength: (u.password || '').length, role: u.role
+        })));
+
         return parsed;
       }
     } catch (e) {
@@ -306,6 +322,10 @@ class HelpDeskStorage {
     };
     this.data.users.push(newUser);
     this.saveData();
+    console.log('[CreateUser] Novo usuário salvo:', { 
+      id: newUser.id, username: newUser.username, email: newUser.email, 
+      passLength: newUser.password.length, role: newUser.role 
+    });
     this.syncWithSheets('createUser', newUser);
     return newUser;
   }
@@ -372,16 +392,32 @@ class HelpDeskStorage {
     const cleanInput = (usernameOrEmail || '').trim().toLowerCase();
     const cleanPass = (password || '').trim();
 
+    console.log('[Auth] Tentativa de login:', { input: cleanInput, passLength: cleanPass.length });
+    console.log('[Auth] Usuários registrados:', this.data.users.map(u => ({
+      id: u.id, username: u.username, email: u.email, name: u.name, passLength: (u.password || '').length
+    })));
+
     const user = this.data.users.find(u => {
-      const usernameMatch = (u.username || '').toLowerCase() === cleanInput;
-      const emailMatch = (u.email || '').toLowerCase() === cleanInput;
-      const nameMatch = (u.name || '').toLowerCase() === cleanInput;
+      const uUsername = (u.username || '').trim().toLowerCase();
+      const uEmail = (u.email || '').trim().toLowerCase();
+      const uName = (u.name || '').trim().toLowerCase();
+      
+      const usernameMatch = uUsername === cleanInput;
+      const emailMatch = uEmail === cleanInput;
+      const nameMatch = uName === cleanInput;
       
       if (!usernameMatch && !emailMatch && !nameMatch) return false;
 
       // Validação de senha
       const storedPass = (u.password || '').trim();
-      return cleanPass === storedPass || (cleanPass === 'admin' && u.role === 'admin' && !storedPass);
+      const passMatch = cleanPass === storedPass;
+      
+      console.log('[Auth] Verificando:', { 
+        userId: u.id, uUsername, usernameMatch, emailMatch, nameMatch,
+        storedPassLength: storedPass.length, cleanPassLength: cleanPass.length, passMatch 
+      });
+      
+      return passMatch || (cleanPass === 'admin' && u.role === 'admin' && !storedPass);
     });
 
     if (user) {
@@ -390,8 +426,10 @@ class HelpDeskStorage {
         localStorage.setItem('HELPDESK_AUTH_SESSION', JSON.stringify({ userId: user.id, loggedAt: Date.now() }));
       } catch(e) {}
       this.saveData();
+      console.log('[Auth] Login bem-sucedido:', user.name, user.role);
       return user;
     }
+    console.warn('[Auth] Login falhou para:', cleanInput);
     return null;
   }
 
@@ -445,10 +483,44 @@ class HelpDeskStorage {
           if (json.problemTypes && json.problemTypes.length > 0) this.data.problemTypes = json.problemTypes;
           if (json.users && json.users.length > 0) {
             // Mescla usuários da planilha com usuários locais criados
+            // Preserva dados locais (como password e username) que podem não estar na planilha
             const userMap = new Map();
-            this.data.users.forEach(u => userMap.set(u.id, u));
-            json.users.forEach(u => userMap.set(u.id, Object.assign({}, userMap.get(u.id) || {}, u)));
+            // Primeiro, adiciona todos os usuários locais como base
+            this.data.users.forEach(u => userMap.set(u.id, { ...u }));
+            // Depois, mescla dados remotos SEM sobrescrever campos sensíveis vazios
+            json.users.forEach(remoteUser => {
+              const localUser = userMap.get(remoteUser.id);
+              if (localUser) {
+                // Mescla, mas preserva password e username locais se o remoto estiver vazio
+                const merged = { ...localUser };
+                Object.keys(remoteUser).forEach(key => {
+                  const remoteVal = remoteUser[key];
+                  // Só sobrescreve se o valor remoto for preenchido
+                  if (remoteVal !== undefined && remoteVal !== null && remoteVal !== '') {
+                    // Para password e username, só sobrescreve se o valor local estiver vazio
+                    if ((key === 'password' || key === 'username') && localUser[key]) {
+                      return; // Mantém o valor local
+                    }
+                    merged[key] = remoteVal;
+                  }
+                });
+                userMap.set(remoteUser.id, merged);
+              } else {
+                // Usuário novo vindo da planilha, adiciona com fallbacks
+                const newRemote = { ...remoteUser };
+                if (!newRemote.username) {
+                  newRemote.username = newRemote.email ? newRemote.email.split('@')[0] : `user${newRemote.id}`;
+                }
+                if (!newRemote.password) {
+                  newRemote.password = newRemote.role === 'admin' ? 'admin' : '123456';
+                }
+                userMap.set(remoteUser.id, newRemote);
+              }
+            });
             this.data.users = Array.from(userMap.values());
+            console.log('[loadFromSheets] Usuários mesclados:', this.data.users.map(u => ({ 
+              id: u.id, username: u.username, passLength: (u.password || '').length 
+            })));
           }
 
           // Reafirma a sessão do usuário atualmente logado

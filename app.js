@@ -144,8 +144,13 @@ class AppController {
       if (confirm('Deseja realmente encerrar sua sessão?')) {
         window.db.logout();
         this.showLoginScreen();
+        // Limpa formulário de login
+        const usernameInput = document.getElementById('loginEmail');
         const pwdInput = document.getElementById('loginPassword');
+        const loginErrorMsg = document.getElementById('loginErrorMsg');
+        if (usernameInput) usernameInput.value = '';
         if (pwdInput) pwdInput.value = '';
+        if (loginErrorMsg) loginErrorMsg.classList.add('d-none');
         this.showToast('Sessão encerrada com sucesso.', 'info');
       }
     };
@@ -467,6 +472,9 @@ class AppController {
   }
 
   setupForms() {
+    if (this._formsSetupDone) return;
+    this._formsSetupDone = true;
+
     // Form Novo Chamado
     const formNewTicket = document.getElementById('formNewTicket');
     if (formNewTicket) {
@@ -904,7 +912,7 @@ class AppController {
             </form>
           </div>
         `;
-        this.setupForms(); // reatacha o evento do form de solução
+        this.rebindSolutionForm(); // reatacha o evento do form de solução
       } else {
         solutionContainer.innerHTML = `
           <div class="alert alert-info">
@@ -978,6 +986,36 @@ class AppController {
         </div>
       </div>
     `).join('');
+  }
+
+  rebindSolutionForm() {
+    const formSolution = document.getElementById('formApplySolution');
+    if (formSolution) {
+      formSolution.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!this.selectedTicketId) return;
+
+        const summary = document.getElementById('solutionSummary').value.trim();
+        const timeSpent = document.getElementById('solutionTimeSpent').value;
+        const notes = document.getElementById('solutionNotes').value.trim();
+
+        if (!summary) {
+          this.showToast('Por favor descreva a solução técnica aplicada.', 'warning');
+          return;
+        }
+
+        window.db.applySolution(this.selectedTicketId, {
+          appliedBy: window.db.getCurrentUser().name,
+          summary: summary,
+          timeSpentHours: timeSpent,
+          preventiveNotes: notes
+        });
+
+        this.showToast('Solução aplicada registrada e chamado CONCLUÍDO!', 'success');
+        this.renderTicketDetailsContent(this.selectedTicketId);
+        this.renderTickets();
+      });
+    }
   }
 
   renderManagementTables() {
