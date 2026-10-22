@@ -604,4 +604,35 @@ Abaixo estão melhorias prontas para serem implementadas no seu fluxo de evoluç
 
 ---
 
+## 10. Sistema de Login e Gestão de Acessos
+
+### 10.1 Como Funciona o Login
+- **Credenciais de Acesso**: O login é feito com **Nome de Usuário** e **Senha**.
+- **Usuário Padrão Inicial**:
+  - **Nome de Usuário**: `admin`
+  - **Senha**: `admin`
+  - **Perfil**: Administrador
+- **Sessão Persistente**: A sessão do usuário permanece ativa no navegador até que o botão de **Sair (Logout)** seja acionado.
+
+### 10.2 Cadastro de Novos Usuários e Administradores
+- Apenas usuários com perfil de **Administrador** têm acesso à aba **Gestão e Controle** e podem cadastrar novos membros.
+- Ao cadastrar um novo usuário:
+  1. Informe o **Nome Completo**.
+  2. Defina o **Nome de Usuário (Login)** (ex: `joao.silva`).
+  3. Preencha o **E-mail Corporativo** (opcional).
+  4. Escolha o **Perfil de Permissão**:
+     - 👤 **Usuário Comum**: Abre e acompanha chamados do seu setor.
+     - 🔧 **Técnico de Suporte**: Atende chamados e aplica soluções técnicas.
+     - 🛡️ **Administrador**: Gestão irrestrita de usuários, setores, tipos de problema e dashboard.
+  5. Selecione o **Setor de Atuação**.
+  6. Defina a **Senha de Acesso** desejada na hora do cadastro.
+
+### 10.3 Alteração e Remoção de Administradores
+- Na tabela de **Usuários Cadastrados**:
+  - O ícone de lápis (`Editar`) permite alterar o nome, username, perfil, cargo, setor e redefinir a senha a qualquer momento.
+  - Para adicionar mais administradores, basta cadastrar um usuário ou editar um existente com o perfil **Administrador**.
+  - Qualquer administrador pode ser removido, inclusive o administrador inicial (`admin`), contanto que exista **pelo menos 1 administrador ativo** no sistema (proteção contra bloqueio total).
+
+---
+
 *Documentação elaborada para o time de TI e desenvolvimento. Dúvidas ou novas implementações podem ser integradas diretamente nas próximas versões.*

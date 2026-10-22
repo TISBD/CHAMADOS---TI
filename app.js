@@ -35,6 +35,15 @@ class AppController {
     }
 
     this.setupTheme();
+    this.setupAuth();
+
+    // Se não estiver logado, exibe a tela de login e aguarda autenticação
+    if (!window.db.getAuthenticatedUser()) {
+      this.showLoginScreen();
+      return;
+    }
+
+    this.hideLoginScreen();
     this.setupUserSwitcher();
     this.setupNavigation();
     this.setupModals();
@@ -52,6 +61,89 @@ class AppController {
         }
       });
     }
+  }
+
+  showLoginScreen() {
+    const screen = document.getElementById('loginScreen');
+    if (screen) {
+      screen.classList.remove('d-none');
+      document.body.style.overflow = 'hidden';
+      const input = document.getElementById('loginEmail');
+      if (input) setTimeout(() => input.focus(), 100);
+    }
+  }
+
+  hideLoginScreen() {
+    const screen = document.getElementById('loginScreen');
+    if (screen) {
+      screen.classList.add('d-none');
+      document.body.style.overflow = '';
+    }
+  }
+
+  setupAuth() {
+    if (this._authSetupDone) return;
+    this._authSetupDone = true;
+
+    const formLogin = document.getElementById('formLogin');
+    const loginErrorMsg = document.getElementById('loginErrorMsg');
+    const loginErrorText = document.getElementById('loginErrorText');
+    const btnToggle = document.getElementById('btnTogglePassword');
+    const pwdInput = document.getElementById('loginPassword');
+
+    if (btnToggle && pwdInput) {
+      btnToggle.addEventListener('click', () => {
+        const isPwd = pwdInput.type === 'password';
+        pwdInput.type = isPwd ? 'text' : 'password';
+        btnToggle.innerHTML = isPwd ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
+      });
+    }
+
+    if (formLogin) {
+      formLogin.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+
+        if (loginErrorMsg) loginErrorMsg.classList.add('d-none');
+
+        const user = window.db.authenticate(username, password);
+        if (user) {
+          this.hideLoginScreen();
+          this.setupUserSwitcher();
+          this.setupNavigation();
+          this.setupModals();
+          this.setupTicketFilters();
+          this.setupForms();
+          this.renderAll();
+          this.showToast(`Bem-vindo(a), ${user.name}!`, 'success');
+        } else {
+          if (loginErrorMsg) {
+            loginErrorMsg.classList.remove('d-none');
+            if (loginErrorText) {
+              loginErrorText.innerText = 'Nome de usuário ou senha inválidos. Tente novamente.';
+            }
+          }
+        }
+      });
+    }
+
+    // Botões de Logout
+    const btnLogout = document.getElementById('btnLogout');
+    const topbarBtnLogout = document.getElementById('topbarBtnLogout');
+
+    const handleLogout = () => {
+      if (confirm('Deseja realmente encerrar sua sessão?')) {
+        window.db.logout();
+        this.showLoginScreen();
+        const pwdInput = document.getElementById('loginPassword');
+        if (pwdInput) pwdInput.value = '';
+        this.showToast('Sessão encerrada com sucesso.', 'info');
+      }
+    };
+
+    if (btnLogout) btnLogout.addEventListener('click', handleLogout);
+    if (topbarBtnLogout) topbarBtnLogout.addEventListener('click', handleLogout);
   }
 
   setupTheme() {
@@ -419,17 +511,59 @@ class AppController {
       formNewUser.addEventListener('submit', (e) => {
         e.preventDefault();
         const name = document.getElementById('newUserName').value.trim();
+        const username = document.getElementById('newUserUsername').value.trim();
         const email = document.getElementById('newUserEmail').value.trim();
         const role = document.getElementById('newUserRole').value;
         const sectorId = document.getElementById('newUserSectorSelect').value;
         const jobTitle = document.getElementById('newUserJobTitle').value.trim();
+        const password = document.getElementById('newUserPassword').value.trim();
 
-        window.db.createUser({ name, email, role, sectorId, jobTitle });
-        this.closeModal('modalNewUser');
-        formNewUser.reset();
-        this.showToast(`Usuário ${name} cadastrado com sucesso!`, 'success');
-        this.setupUserSwitcher();
-        this.renderManagementTables();
+        if (!name || !username || !password) {
+          this.showToast('Por favor preencha nome, nome de usuário e senha.', 'warning');
+          return;
+        }
+
+        try {
+          window.db.createUser({ name, username, email, role, sectorId, jobTitle, password });
+          this.closeModal('modalNewUser');
+          formNewUser.reset();
+          this.showToast(`Usuário @${username} cadastrado com sucesso!`, 'success');
+          this.setupUserSwitcher();
+          this.renderManagementTables();
+        } catch (err) {
+          this.showToast(err.message || 'Erro ao cadastrar usuário.', 'error');
+        }
+      });
+    }
+
+    // Form Editar Usuário / Administrador
+    const formEditUser = document.getElementById('formEditUser');
+    if (formEditUser) {
+      formEditUser.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('editUserId').value;
+        const name = document.getElementById('editUserName').value.trim();
+        const username = document.getElementById('editUserUsername').value.trim();
+        const email = document.getElementById('editUserEmail').value.trim();
+        const role = document.getElementById('editUserRole').value;
+        const sectorId = document.getElementById('editUserSectorSelect').value;
+        const jobTitle = document.getElementById('editUserJobTitle').value.trim();
+        const password = document.getElementById('editUserPassword').value.trim();
+
+        const updatePayload = { name, username, email, role, sectorId, jobTitle };
+        if (password) {
+          updatePayload.password = password;
+        }
+
+        try {
+          window.db.updateUser(id, updatePayload);
+          this.closeModal('modalEditUser');
+          this.showToast(`Cadastro de @${username} atualizado com sucesso!`, 'success');
+          this.setupUserSwitcher();
+          this.renderManagementTables();
+        } catch (err) {
+          this.showToast(err.message || 'Erro ao atualizar usuário.', 'error');
+        }
       });
     }
 
@@ -817,14 +951,21 @@ class AppController {
     if (!tableBody) return;
 
     const users = window.db.getUsers();
-    tableBody.innerHTML = users.map(u => `
+    const adminCount = users.filter(u => u.role === 'admin').length;
+
+    tableBody.innerHTML = users.map(u => {
+      const isSoleAdmin = u.role === 'admin' && adminCount <= 1;
+
+      return `
       <tr>
         <td>
           <div class="user-row-cell">
             <img src="${encodeURI(u.avatar || '')}" class="avatar-sm" alt="${this.escapeHtml(u.name)}">
             <div>
               <strong>${this.escapeHtml(u.name)}</strong>
-              <div class="text-muted text-xs">${this.escapeHtml(u.email)}</div>
+              <div class="text-muted text-xs">
+                <span class="user-handle" style="color: var(--primary-light); font-weight: 600;">@${this.escapeHtml(u.username || 'usuario')}</span> • ${this.escapeHtml(u.email || 'Sem e-mail')}
+              </div>
             </div>
           </div>
         </td>
@@ -832,15 +973,45 @@ class AppController {
         <td>${this.escapeHtml(u.sectorName)}</td>
         <td>${this.escapeHtml(u.jobTitle)}</td>
         <td>${this.escapeHtml(u.phone || '-')}</td>
-        <td class="text-right">
-          ${u.id !== 'usr-admin' ? `
-            <button class="btn btn-icon btn-danger-soft" onclick="app.deleteUser('${this.escapeHtml(u.id)}')" title="Excluir Usuário">
+        <td class="text-right" style="white-space: nowrap;">
+          <button class="btn btn-icon btn-outline btn-sm mr-1" onclick="app.openEditUserModal('${this.escapeHtml(u.id)}')" title="Editar Cadastro / Alterar Senha">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          ${!isSoleAdmin ? `
+            <button class="btn btn-icon btn-danger-soft btn-sm" onclick="app.deleteUser('${this.escapeHtml(u.id)}')" title="Excluir Usuário">
               <i class="fa-regular fa-trash-can"></i>
             </button>
-          ` : `<span class="badge badge-locked"><i class="fa-solid fa-lock"></i> Master</span>`}
+          ` : `<span class="badge badge-locked" title="Único administrador ativo no sistema. Para remover, cadastre ou promova outro primeiro."><i class="fa-solid fa-shield"></i> Único Admin</span>`}
         </td>
       </tr>
-    `).join('');
+      `;
+    }).join('');
+  }
+
+  openEditUserModal(userId) {
+    const user = window.db.getUserById(userId);
+    if (!user) {
+      this.showToast('Usuário não encontrado.', 'error');
+      return;
+    }
+
+    document.getElementById('editUserId').value = user.id;
+    document.getElementById('editUserName').value = user.name || '';
+    document.getElementById('editUserUsername').value = user.username || '';
+    document.getElementById('editUserEmail').value = user.email || '';
+    document.getElementById('editUserRole').value = user.role || 'user';
+    document.getElementById('editUserJobTitle').value = user.jobTitle || '';
+    document.getElementById('editUserPassword').value = '';
+
+    const sectorSelect = document.getElementById('editUserSectorSelect');
+    if (sectorSelect) {
+      const sectors = window.db.getSectors();
+      sectorSelect.innerHTML = sectors.map(s => 
+        `<option value="${s.id}" ${s.id === user.sectorId ? 'selected' : ''}>${s.name}</option>`
+      ).join('');
+    }
+
+    this.openModal('modalEditUser');
   }
 
   renderSectorsTable() {
@@ -946,10 +1117,6 @@ class AppController {
     const currentUser = window.db.getCurrentUser();
     if (currentUser.role !== 'admin') {
       this.showToast('Acesso negado: apenas administradores podem remover usuários.', 'error');
-      return;
-    }
-    if (id === 'usr-admin') {
-      this.showToast('Segurança: O usuário administrador master não pode ser removido.', 'warning');
       return;
     }
     if (confirm('Tem certeza que deseja remover este usuário?')) {

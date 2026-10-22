@@ -39,12 +39,12 @@
 
       <form id="formLogin" class="login-form">
         <div class="form-group mb-3">
-          <label for="loginEmail"><i class="fa-solid fa-user"></i> E-mail ou Usuário *</label>
-          <input type="text" id="loginEmail" class="form-control" placeholder="admin@empresa.com" required autocomplete="username">
+          <label for="loginEmail"><i class="fa-solid fa-user"></i> Nome de Usuário *</label>
+          <input type="text" id="loginEmail" class="form-control" placeholder="Digite seu nome de usuário" required autocomplete="username">
         </div>
 
         <div class="form-group mb-3">
-          <label for="loginPassword"><i class="fa-solid fa-lock"></i> Senha de Acesso *</label>
+          <label for="loginPassword"><i class="fa-solid fa-lock"></i> Senha *</label>
           <div class="password-input-wrapper">
             <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password">
             <button type="button" id="btnTogglePassword" class="btn-toggle-pwd" title="Mostrar/Ocultar Senha">
@@ -55,7 +55,7 @@
 
         <div id="loginErrorMsg" class="login-error-alert d-none">
           <i class="fa-solid fa-triangle-exclamation"></i>
-          <span id="loginErrorText">E-mail ou senha inválidos.</span>
+          <span id="loginErrorText">Usuário ou senha incorretos.</span>
         </div>
 
         <button type="submit" class="btn btn-primary w-100 btn-login">
@@ -63,7 +63,7 @@
         </button>
 
         <div class="login-footer-hint">
-          <small><i class="fa-solid fa-key"></i> Administrador: <strong>admin@empresa.com</strong> | Senha: <strong>admin123</strong></small>
+          <small><i class="fa-solid fa-key"></i> Usuário inicial: <strong>admin</strong> | Senha: <strong>admin</strong></small>
         </div>
       </form>
     </div>
@@ -669,14 +669,21 @@
 
       <form id="formNewUser">
         <div class="modal-body">
-          <div class="form-group">
-            <label for="newUserName">Nome Completo *</label>
-            <input type="text" id="newUserName" class="form-control" placeholder="Ex: Ana Clara Ribeiro" required>
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="newUserName">Nome Completo *</label>
+              <input type="text" id="newUserName" class="form-control" placeholder="Ex: Ana Clara Ribeiro" required>
+            </div>
+
+            <div class="form-group">
+              <label for="newUserUsername">Nome de Usuário (Login) *</label>
+              <input type="text" id="newUserUsername" class="form-control" placeholder="Ex: anaclara ou ana.ribeiro" required>
+            </div>
           </div>
 
           <div class="form-group">
-            <label for="newUserEmail">E-mail Corporativo *</label>
-            <input type="email" id="newUserEmail" class="form-control" placeholder="ana.ribeiro@empresa.com" required>
+            <label for="newUserEmail">E-mail Corporativo</label>
+            <input type="email" id="newUserEmail" class="form-control" placeholder="ana.ribeiro@empresa.com">
           </div>
 
           <div class="row-2-cols">
@@ -711,6 +718,74 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline btn-close-modal">Cancelar</button>
           <button type="submit" class="btn btn-primary">Salvar Usuário</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL: EDITAR USUÁRIO / ADMINISTRADOR      -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="modalEditUser">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-pen text-primary"></i> Editar Cadastro de Usuário</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="formEditUser">
+        <input type="hidden" id="editUserId">
+        <div class="modal-body">
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="editUserName">Nome Completo *</label>
+              <input type="text" id="editUserName" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label for="editUserUsername">Nome de Usuário (Login) *</label>
+              <input type="text" id="editUserUsername" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editUserEmail">E-mail Corporativo</label>
+            <input type="email" id="editUserEmail" class="form-control">
+          </div>
+
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="editUserRole">Perfil de Permissão *</label>
+              <select id="editUserRole" class="form-control" required>
+                <option value="user">👤 Usuário Comum (Abre chamados)</option>
+                <option value="tech">🔧 Técnico de Suporte (Aplica soluções)</option>
+                <option value="admin">🛡️ Administrador (Gestão total)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="editUserSectorSelect">Setor de Atuação *</label>
+              <select id="editUserSectorSelect" class="form-control" required>
+                <!-- Populado dinamicamente -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editUserJobTitle">Cargo / Função *</label>
+            <input type="text" id="editUserJobTitle" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="editUserPassword">Nova Senha (deixe em branco para manter a atual)</label>
+            <input type="password" id="editUserPassword" class="form-control" placeholder="Digite apenas se desejar trocar a senha">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-close-modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
         </div>
       </form>
     </div>
