@@ -475,72 +475,74 @@ class HelpDeskStorage {
     if (!window.CONFIG || !window.CONFIG.GOOGLE_SHEETS_API_URL) return false;
     try {
       const res = await fetch(`${window.CONFIG.GOOGLE_SHEETS_API_URL}?action=all`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.success) {
-          if (json.tickets && json.tickets.length > 0) this.data.tickets = json.tickets;
-          if (json.sectors && json.sectors.length > 0) this.data.sectors = json.sectors;
-          if (json.problemTypes && json.problemTypes.length > 0) this.data.problemTypes = json.problemTypes;
-          if (json.users && json.users.length > 0) {
-            // Mescla usuários da planilha com usuários locais criados
-            // Preserva dados locais (como password e username) que podem não estar na planilha
-            const userMap = new Map();
-            // Primeiro, adiciona todos os usuários locais como base
-            this.data.users.forEach(u => userMap.set(u.id, { ...u }));
-            // Depois, mescla dados remotos SEM sobrescrever campos sensíveis vazios
-            json.users.forEach(remoteUser => {
-              const localUser = userMap.get(remoteUser.id);
-              if (localUser) {
-                // Mescla, mas preserva password e username locais se o remoto estiver vazio
-                const merged = { ...localUser };
-                Object.keys(remoteUser).forEach(key => {
-                  const remoteVal = remoteUser[key];
-                  // Só sobrescreve se o valor remoto for preenchido
-                  if (remoteVal !== undefined && remoteVal !== null && remoteVal !== '') {
-                    // Para password e username, só sobrescreve se o valor local estiver vazio
-                    if ((key === 'password' || key === 'username') && localUser[key]) {
-                      return; // Mantém o valor local
-                    }
-                    merged[key] = remoteVal;
+      if (!res.ok) {
+        console.warn(`[Google Sheets] API retornou status ${res.status}. Verifique se o Apps Script está implantado como Web App. Usando dados locais.`);
+        return false;
+      }
+      const json = await res.json();
+      if (json && json.success) {
+        if (json.tickets && json.tickets.length > 0) this.data.tickets = json.tickets;
+        if (json.sectors && json.sectors.length > 0) this.data.sectors = json.sectors;
+        if (json.problemTypes && json.problemTypes.length > 0) this.data.problemTypes = json.problemTypes;
+        if (json.users && json.users.length > 0) {
+          // Mescla usuários da planilha com usuários locais criados
+          // Preserva dados locais (como password e username) que podem não estar na planilha
+          const userMap = new Map();
+          // Primeiro, adiciona todos os usuários locais como base
+          this.data.users.forEach(u => userMap.set(u.id, { ...u }));
+          // Depois, mescla dados remotos SEM sobrescrever campos sensíveis vazios
+          json.users.forEach(remoteUser => {
+            const localUser = userMap.get(remoteUser.id);
+            if (localUser) {
+              // Mescla, mas preserva password e username locais se o remoto estiver vazio
+              const merged = { ...localUser };
+              Object.keys(remoteUser).forEach(key => {
+                const remoteVal = remoteUser[key];
+                // Só sobrescreve se o valor remoto for preenchido
+                if (remoteVal !== undefined && remoteVal !== null && remoteVal !== '') {
+                  // Para password e username, só sobrescreve se o valor local estiver vazio
+                  if ((key === 'password' || key === 'username') && localUser[key]) {
+                    return; // Mantém o valor local
                   }
-                });
-                userMap.set(remoteUser.id, merged);
-              } else {
-                // Usuário novo vindo da planilha, adiciona com fallbacks
-                const newRemote = { ...remoteUser };
-                if (!newRemote.username) {
-                  newRemote.username = newRemote.email ? newRemote.email.split('@')[0] : `user${newRemote.id}`;
+                  merged[key] = remoteVal;
                 }
-                if (!newRemote.password) {
-                  newRemote.password = newRemote.role === 'admin' ? 'admin' : '123456';
-                }
-                userMap.set(remoteUser.id, newRemote);
+              });
+              userMap.set(remoteUser.id, merged);
+            } else {
+              // Usuário novo vindo da planilha, adiciona com fallbacks
+              const newRemote = { ...remoteUser };
+              if (!newRemote.username) {
+                newRemote.username = newRemote.email ? newRemote.email.split('@')[0] : `user${newRemote.id}`;
               }
-            });
-            this.data.users = Array.from(userMap.values());
-            console.log('[loadFromSheets] Usuários mesclados:', this.data.users.map(u => ({ 
-              id: u.id, username: u.username, passLength: (u.password || '').length 
-            })));
-          }
-
-          // Reafirma a sessão do usuário atualmente logado
-          const session = localStorage.getItem('HELPDESK_AUTH_SESSION');
-          if (session) {
-            try {
-              const { userId } = JSON.parse(session);
-              const authUser = this.data.users.find(u => u.id === userId);
-              if (authUser) {
-                this.data.currentUser = authUser;
+              if (!newRemote.password) {
+                newRemote.password = newRemote.role === 'admin' ? 'admin' : '123456';
               }
-            } catch(e) {}
-          }
-
-          this.saveData();
-          return true;
+              userMap.set(remoteUser.id, newRemote);
+            }
+          });
+          this.data.users = Array.from(userMap.values());
+          console.log('[loadFromSheets] Usuários mesclados:', this.data.users.map(u => ({ 
+            id: u.id, username: u.username, passLength: (u.password || '').length 
+          })));
         }
+
+        // Reafirma a sessão do usuário atualmente logado
+        const session = localStorage.getItem('HELPDESK_AUTH_SESSION');
+        if (session) {
+          try {
+            const { userId } = JSON.parse(session);
+            const authUser = this.data.users.find(u => u.id === userId);
+            if (authUser) {
+              this.data.currentUser = authUser;
+            }
+          } catch(e) {}
+        }
+
+        this.saveData();
+        return true;
       }
     } catch (e) {
-      console.info('[Google Sheets] Carregamento inicial via armazenamento local.');
+      console.info('[Google Sheets] Sem conexão com a planilha. Usando armazenamento local.');
     }
     return false;
   }
