@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HelpDesk Pro - Service Desk Corporativo & Gestão de TI</title>
+  <meta name="description" content="Sistema corporativo de Helpdesk e Service Desk de TI com controle de SLA, RBAC, auditoria, inventário de ativos e inteligência operacional.">
+  
+  <!-- Fontes & Ícones -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- CSS Design System Corporativo -->
+  <link rel="stylesheet" href="/css/styles.css">
+  
+  <!-- Chart.js para Dashboards -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Overlay de Autenticação (Login Corporativo Seguro) -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo">
+          <i class="fa-solid fa-headset"></i>
+        </div>
+        <h2 style="font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em;">HelpDesk Pro</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Service Desk Corporativo & Governança de TI</p>
+      </div>
+
+      <form id="formLogin">
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">E-mail Corporativo</label>
+          <div style="position: relative;">
+            <input type="email" id="loginEmail" class="form-input" style="padding-left: 38px;" placeholder="seu.email@empresa.com" required>
+            <i class="fa-regular fa-envelope" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim);"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Senha de Acesso</label>
+          <div style="position: relative;">
+            <input type="password" id="loginPassword" class="form-input" style="padding-left: 38px;" placeholder="••••••••" required>
+            <i class="fa-solid fa-lock" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim);"></i>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 8px;">
+          Acessar Central de TI <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <!-- Botões Demo para Teste Rápido de Perfis RBAC -->
+      <div class="login-demo-presets">
+        <h5>Acesso Rápido para Avaliação (1 Clique)</h5>
+        <div class="demo-btn-row">
+          <button type="button" class="btn-demo" data-email="admin@empresa.com" data-pass="admin123" title="Gestão Total, Auditoria e SLAs">
+            👑 Admin
+          </button>
+          <button type="button" class="btn-demo" data-email="tecnico@empresa.com" data-pass="tecnico123" title="Fila Técnica, Notas Internas e Solução">
+            🛠️ Técnico
+          </button>
+          <button type="button" class="btn-demo" data-email="usuario@empresa.com" data-pass="user123" title="Abertura de Chamados e CSAT">
+            👤 Usuário
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contêiner Principal da SPA -->
+  <div class="app-container">
+    
+    <!-- Sidebar / Menu Lateral -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand-icon">
+          <i class="fa-solid fa-headset"></i>
+        </div>
+        <div class="brand-text">
+          <h1>HelpDesk Pro</h1>
+          <span>Service Desk TI</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Operações</div>
+        <a class="nav-item active" data-tab="tickets">
+          <i class="fa-solid fa-ticket"></i>
+          <span>Central de Chamados</span>
+        </a>
+        <a class="nav-item" data-tab="dashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard & SLA</span>
+        </a>
+        <a class="nav-item" data-tab="kb">
+          <i class="fa-solid fa-book-open"></i>
+          <span>Base de Conhecimento</span>
+        </a>
+        <a class="nav-item" data-tab="assets">
+          <i class="fa-solid fa-laptop"></i>
+          <span>Inventário de Ativos</span>
+        </a>
+
+        <div class="nav-section-title">Governança (Admin)</div>
+        <a class="nav-item" data-tab="users">
+          <i class="fa-solid fa-users-gear"></i>
+          <span>Gestão de Usuários</span>
+        </a>
+        <a class="nav-item" data-tab="audit">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Logs de Auditoria</span>
+        </a>
+      </nav>
+
+      <!-- Perfil do Usuário na Sidebar -->
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <img id="sidebarAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100" class="user-avatar" alt="Avatar">
+          <div class="user-info">
+            <div id="sidebarUserName" class="user-name">Usuário</div>
+            <div id="sidebarUserRole" class="user-role-badge role-admin">Admin</div>
+          </div>
+          <button id="btnLogout" class="btn-logout" title="Encerrar Sessão">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Área Principal de Conteúdo -->
+    <main class="main-wrapper">
+      
+      <!-- Topbar Superior -->
+      <header class="topbar">
+        <div class="page-title">
+          <h2 id="topbarTitle">Painel de Atendimento</h2>
+          <p id="topbarSubtitle">Gerenciamento corporativo de chamados e incidentes</p>
+        </div>
+
+        <div class="topbar-actions">
+          <!-- Toggle Dark/Light Mode -->
+          <button id="btnThemeToggle" class="btn-theme-toggle" title="Alternar Modo Escuro / Claro">
+            <i id="themeIcon" class="fa-regular fa-sun"></i>
+          </button>
+
+          <!-- Notificações Dropdown -->
+          <div class="notifications-dropdown-container">
+            <button id="btnNotifications" class="btn-icon-badge" title="Notificações">
+              <i class="fa-regular fa-bell"></i>
+              <span id="notifDot" class="badge-dot" style="display: none;"></span>
+            </button>
+            <div id="notificationsDropdown" class="dropdown-menu-custom">
+              <div style="font-weight: 700; font-size: 0.85rem; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 8px;">
+                Notificações do Sistema
+              </div>
+              <div id="notificationsList">
+                <!-- Injetado dinamicamente -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Botão de Abertura de Novo Chamado -->
+          <button id="btnOpenNewTicket" class="btn-primary">
+            <i class="fa-solid fa-plus"></i> Novo Chamado
+          </button>
+        </div>
+      </header>
+
+      <!-- Corpo de Conteúdo (Abas) -->
+      <div class="content-body">
+        
+        <!-- ABA 1: CENTRAL DE CHAMADOS -->
+        <section id="view-tickets" class="tab-view active">
+          
+          <!-- Barra de Filtros e Busca -->
+          <div class="toolbar-card">
+            <div class="filter-group">
+              <div class="search-input-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="ticketSearch" class="search-input" placeholder="Buscar por código, título ou palavra-chave...">
+              </div>
+
+              <select id="filterStatus" class="select-filter">
+                <option value="all">Todos os Status</option>
+                <option value="ABERTO">Aberto</option>
+                <option value="EM_TRIAGEM">Em Triagem</option>
+                <option value="EM_ATENDIMENTO">Em Atendimento</option>
+                <option value="PENDENTE_USUARIO">Pendente Usuário</option>
+                <option value="RESOLVIDO">Resolvido</option>
+                <option value="FECHADO">Fechado</option>
+                <option value="CANCELADO">Cancelado</option>
+              </select>
+
+              <select id="filterPriority" class="select-filter">
+                <option value="all">Todas as Prioridades</option>
+                <option value="CRITICA">Crítica</option>
+                <option value="ALTA">Alta</option>
+                <option value="MEDIA">Média</option>
+                <option value="BAIXA">Baixa</option>
+              </select>
+
+              <select id="filterCategory" class="select-filter">
+                <option value="all">Todas as Categorias</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Tabela de Chamados -->
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 110px;">Código</th>
+                    <th>Título & Categoria</th>
+                    <th style="width: 140px;">Status</th>
+                    <th style="width: 100px;">Prioridade</th>
+                    <th style="width: 150px;">Conformidade SLA</th>
+                    <th>Solicitante & Data</th>
+                    <th>Técnico Responsável</th>
+                  </tr>
+                </thead>
+                <tbody id="ticketsTableBody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Paginação -->
+            <div class="pagination-wrapper">
+              <span id="paginationInfo">Carregando...</span>
+              <div class="pagination-controls">
+                <button id="btnPrevPage" class="btn-page"><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+                <button id="btnNextPage" class="btn-page">Próxima <i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA 2: DASHBOARD & MÉTRICAS -->
+        <section id="view-dashboard" class="tab-view">
+          
+          <!-- KPIs Executivos -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-icon-blue"><i class="fa-solid fa-ticket"></i></div>
+              <div class="kpi-content">
+                <h4>Total de Chamados</h4>
+                <div id="kpiTotal" class="kpi-value">0</div>
+                <div class="kpi-subtext">Histórico completo</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-icon-indigo"><i class="fa-solid fa-spinner"></i></div>
+              <div class="kpi-content">
+                <h4>Abertos / Em Fila</h4>
+                <div id="kpiOpen" class="kpi-value">0</div>
+                <div class="kpi-subtext">Aguardando atendimento</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-icon-amber"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+              <div class="kpi-content">
+                <h4>Em Atendimento</h4>
+                <div id="kpiInProgress" class="kpi-value">0</div>
+                <div class="kpi-subtext">Com técnico atuando</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-icon-green"><i class="fa-solid fa-circle-check"></i></div>
+              <div class="kpi-content">
+                <h4>Resolvidos</h4>
+                <div id="kpiResolved" class="kpi-value">0</div>
+                <div class="kpi-subtext">Finalizados com sucesso</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-icon-blue"><i class="fa-solid fa-stopwatch"></i></div>
+              <div class="kpi-content">
+                <h4>MTTA (1ª Resposta)</h4>
+                <div id="kpiMtta" class="kpi-value">0m</div>
+                <div class="kpi-subtext">Tempo médio de triagem</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-icon-purple"><i class="fa-solid fa-clock-rotate-left"></i></div>
+              <div class="kpi-content">
+                <h4>MTTR (Resolução)</h4>
+                <div id="kpiMttr" class="kpi-value">0m</div>
+                <div class="kpi-subtext">Tempo médio de solução</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-icon-green"><i class="fa-solid fa-bullseye"></i></div>
+              <div class="kpi-content">
+                <h4>Conformidade SLA</h4>
+                <div id="kpiSla" class="kpi-value">100%</div>
+                <div class="kpi-subtext">Dentro da meta contratada</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-icon-amber"><i class="fa-solid fa-star"></i></div>
+              <div class="kpi-content">
+                <h4>Satisfação (CSAT)</h4>
+                <div id="kpiCsat" class="kpi-value">5.0 / 5.0</div>
+                <div class="kpi-subtext">Média das avaliações</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gráficos Analíticos -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 26px;">
+            <div class="table-card" style="padding: 20px; height: 340px;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 14px;"><i class="fa-solid fa-folder"></i> Incidentes por Categoria</h4>
+              <div style="position: relative; height: 260px;">
+                <canvas id="chartCategories"></canvas>
+              </div>
+            </div>
+
+            <div class="table-card" style="padding: 20px; height: 340px;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 14px;"><i class="fa-solid fa-building"></i> Demanda por Departamento</h4>
+              <div style="position: relative; height: 260px;">
+                <canvas id="chartDepartments"></canvas>
+              </div>
+            </div>
+
+            <div class="table-card" style="padding: 20px; height: 340px;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 14px;"><i class="fa-solid fa-triangle-exclamation"></i> Gravidade / Prioridades</h4>
+              <div style="position: relative; height: 260px;">
+                <canvas id="chartPriorities"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Matriz Cruzada Mês a Mês (Tipos de Problemas x Meses) -->
+          <div class="table-card" style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div>
+                <h4 style="font-size: 1.05rem; font-weight: 700;"><i class="fa-solid fa-table-cells"></i> Mapeamento Mês a Mês dos Tipos de Problemas</h4>
+                <p style="font-size: 0.8rem; color: var(--text-dim);">Distribuição sazonal de ocorrências nos 12 meses do ano</p>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Categoria / Tipo</th>
+                    <th style="text-align:center;">Jan</th>
+                    <th style="text-align:center;">Fev</th>
+                    <th style="text-align:center;">Mar</th>
+                    <th style="text-align:center;">Abr</th>
+                    <th style="text-align:center;">Mai</th>
+                    <th style="text-align:center;">Jun</th>
+                    <th style="text-align:center;">Jul</th>
+                    <th style="text-align:center;">Ago</th>
+                    <th style="text-align:center;">Set</th>
+                    <th style="text-align:center;">Out</th>
+                    <th style="text-align:center;">Nov</th>
+                    <th style="text-align:center;">Dez</th>
+                    <th style="text-align:center;">Total Ano</th>
+                    <th style="text-align:center;">% Relativa</th>
+                  </tr>
+                </thead>
+                <tbody id="monthlyMatrixBody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+                <tfoot id="monthlyMatrixFoot">
+                  <!-- Totais -->
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA 3: BASE DE CONHECIMENTO & FAQ -->
+        <section id="view-kb" class="tab-view">
+          <div class="toolbar-card">
+            <div class="search-input-wrapper" style="flex: 1;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="kbSearch" class="search-input" placeholder="Pesquisar procedimentos, artigos de autoajuda e FAQs corporativos..." oninput="window.kbComponent.loadArticles(this.value)">
+            </div>
+          </div>
+
+          <div id="kbArticlesList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+            <!-- Artigos da base -->
+          </div>
+        </section>
+
+        <!-- ABA 4: INVENTÁRIO DE ATIVOS -->
+        <section id="view-assets" class="tab-view">
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Tag de Patrimônio</th>
+                    <th>Equipamento</th>
+                    <th>Tipo</th>
+                    <th>Modelo / Fabricante</th>
+                    <th>Usuário Vinculado</th>
+                    <th>Status</th>
+                    <th style="text-align:center;">Chamados</th>
+                  </tr>
+                </thead>
+                <tbody id="assetsTableBody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA 5: GESTÃO DE USUÁRIOS (ADMIN) -->
+        <section id="view-users" class="tab-view">
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Colaborador</th>
+                    <th>E-mail</th>
+                    <th>Perfil RBAC</th>
+                    <th>Departamento</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA 6: AUDITORIA CORPORATIVA (ADMIN) -->
+        <section id="view-audit" class="tab-view">
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Data / Hora</th>
+                    <th>Usuário</th>
+                    <th>Ação</th>
+                    <th>Entidade</th>
+                    <th>Detalhes do Evento</th>
+                    <th>IP de Origem</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: ABERTURA DE NOVO CHAMADO (Com Sugestão de Autoajuda / Deflection) -->
+  <div id="newTicketModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-plus-circle" style="color:var(--primary);"></i> Abrir Novo Chamado de TI</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formNewTicket">
+        <div class="modal-body">
+          
+          <div class="form-group">
+            <label class="form-label" for="newTicketTitle">Título Resumido do Problema *</label>
+            <input type="text" id="newTicketTitle" class="form-input" placeholder="Ex: Impressora do RH não imprime ou Falha de conexão na VPN..." required autocomplete="off">
+          </div>
+
+          <!-- Sugestão Proativa de FAQ / Artigos da Base de Conhecimento -->
+          <div id="kbSuggestionsBox" style="display: none;"></div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="newTicketCategory">Categoria do Problema *</label>
+              <select id="newTicketCategory" class="form-select" required></select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="newTicketPriority">Prioridade Sugerida *</label>
+              <select id="newTicketPriority" class="form-select">
+                <option value="BAIXA">Baixa (Até 48h)</option>
+                <option value="MEDIA" selected>Média (Até 24h)</option>
+                <option value="ALTA">Alta (Até 8h)</option>
+                <option value="CRITICA">Crítica (Até 4h - Parada Total)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="newTicketAsset">Patrimônio / Equipamento Envolvido</label>
+            <select id="newTicketAsset" class="form-select"></select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="newTicketDescription">Descrição Detalhada do Problema *</label>
+            <textarea id="newTicketDescription" class="form-textarea" rows="4" placeholder="Descreva os passos para reproduzir a falha, mensagens de erro exibidas na tela, etc." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="newTicketFile">Anexo / Captura de Tela (Máx 5MB)</label>
+            <input type="file" id="newTicketFile" class="form-input" accept="image/*,.pdf,.txt,.zip">
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary modal-close">Cancelar</button>
+          <button type="submit" class="btn-primary">Abrir Chamado</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALHES DO CHAMADO & TIMELINE -->
+  <div id="ticketDetailModal" class="modal-overlay">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-ticket" style="color:var(--primary);"></i> Central de Atendimento ao Chamado</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="ticketDetailBody" class="modal-body">
+        <!-- Renderizado dinamicamente -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary modal-close">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESOLUÇÃO TÉCNICA APLICADA -->
+  <div id="resolveModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-circle-check" style="color:var(--success);"></i> Registrar Solução e Concluir Chamado</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formResolveTicket">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="resolveSummary">Solução Técnica Aplicada *</label>
+            <textarea id="resolveSummary" class="form-textarea" rows="4" placeholder="Descreva detalhadamente o que foi realizado para sanar o incidente..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="resolveRootCause">Causa Raiz Identificada</label>
+            <input type="text" id="resolveRootCause" class="form-input" placeholder="Ex: Cabo de rede rompido, falha de driver, atualização pendente...">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="resolveTimeSpent">Tempo Total Gasto no Atendimento (Minutos)</label>
+            <input type="number" id="resolveTimeSpent" class="form-input" min="1" value="30">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary modal-close">Cancelar</button>
+          <button type="submit" class="btn-primary" style="background:var(--success);">Finalizar Chamado</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: AVALIAÇÃO CSAT (Pesquisa de Satisfação) -->
+  <div id="csatModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-star" style="color:var(--warning);"></i> Avaliação do Atendimento</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formCsat">
+        <div class="modal-body" style="text-align: center;">
+          <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom: 20px;">Como você avalia a agilidade e a cordialidade da nossa equipe de TI?</p>
+          
+          <div style="display:flex; justify-content:center; gap:14px; margin-bottom:24px; font-size:1.8rem;">
+            <label style="cursor:pointer;"><input type="radio" name="csatRating" value="1" style="display:none;"><span class="star" onclick="selectStar(1)">⭐</span></label>
+            <label style="cursor:pointer;"><input type="radio" name="csatRating" value="2" style="display:none;"><span class="star" onclick="selectStar(2)">⭐</span></label>
+            <label style="cursor:pointer;"><input type="radio" name="csatRating" value="3" style="display:none;"><span class="star" onclick="selectStar(3)">⭐</span></label>
+            <label style="cursor:pointer;"><input type="radio" name="csatRating" value="4" style="display:none;"><span class="star" onclick="selectStar(4)">⭐</span></label>
+            <label style="cursor:pointer;"><input type="radio" name="csatRating" value="5" checked style="display:none;"><span class="star" onclick="selectStar(5)">⭐</span></label>
+          </div>
+
+          <div class="form-group" style="text-align: left;">
+            <label class="form-label" for="csatComment">Comentário ou Elogio (Opcional)</label>
+            <textarea id="csatComment" class="form-textarea" rows="3" placeholder="Deixe um recado para a equipe de suporte..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary modal-close">Pular</button>
+          <button type="submit" class="btn-primary">Enviar Avaliação</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: LEITURA DE ARTIGO DA BASE DE CONHECIMENTO -->
+  <div id="kbDetailModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-book-open" style="color:var(--primary);"></i> Base de Conhecimento</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="kbDetailBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary modal-close">Fechar Artigo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notificações Toast Flutuantes -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts da Aplicação SPA -->
+  <script src="/js/api.js"></script>
+  <script src="/js/state.js"></script>
+  <script src="/js/components/tickets.js"></script>
+  <script src="/js/components/ticketDetail.js"></script>
+  <script src="/js/components/dashboard.js"></script>
+  <script src="/js/components/kb.js"></script>
+  <script src="/js/components/assets.js"></script>
+  <script src="/js/components/users.js"></script>
+  <script src="/js/app.js"></script>
+
+</body>
+</html>

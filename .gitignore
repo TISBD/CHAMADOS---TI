@@ -1,0 +1,32 @@
+# Node & logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Ambiente e IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Segredos e variáveis de ambiente
+.env
+.env.*
+*.local
+credentials.json
+token.json
+
+# Temporários e backups
+*.bak
+*.tmp
+*.zip
+*.log
+.system_generated/
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/*.sqlite
+

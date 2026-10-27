@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HelpDesk Pro | Sistema Integrado de Suporte de TI & Gestão</title>
+  <meta name="description" content="Sistema interno online para empresas para registro de chamados, suporte de TI, assistência técnica, controle de setores, usuários, gestão admin e dashboard analítico de tipos de problemas mês a mês.">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ========================================== -->
+  <!-- TELA DE AUTENTICAÇÃO (LOGIN)               -->
+  <!-- ========================================== -->
+  <div id="loginScreen" class="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-brand-icon">
+          <i class="fa-solid fa-headset"></i>
+        </div>
+        <h2>HelpDesk Pro</h2>
+        <p class="login-subtitle">Sistema Integrado de Suporte de TI & Gestão</p>
+      </div>
+
+      <form id="formLogin" class="login-form">
+        <div class="form-group mb-3">
+          <label for="loginEmail"><i class="fa-solid fa-user"></i> Nome de Usuário *</label>
+          <input type="text" id="loginEmail" class="form-control" placeholder="Digite seu nome de usuário" required autocomplete="username">
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="loginPassword"><i class="fa-solid fa-lock"></i> Senha *</label>
+          <div class="password-input-wrapper">
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" id="btnTogglePassword" class="btn-toggle-pwd" title="Mostrar/Ocultar Senha">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="loginErrorMsg" class="login-error-alert d-none">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="loginErrorText">Usuário ou senha incorretos.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 btn-login">
+          <i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema
+        </button>
+
+        <div class="login-footer-hint">
+          <small><i class="fa-solid fa-key"></i> Usuário inicial: <strong>admin</strong> | Senha: <strong>admin</strong></small>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-layout" id="appLayout">
+    <!-- Sidebar Lateral -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon-box">
+          <i class="fa-solid fa-headset"></i>
+        </div>
+        <div class="brand-text">
+          <h2>HelpDesk Pro</h2>
+          <span>Enterprise IT & Ops</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Menu Principal</div>
+        
+        <a href="#tickets" class="nav-tab-link active" data-tab="tickets" id="navLinkTickets">
+          <i class="fa-solid fa-ticket"></i>
+          <span>Chamados</span>
+          <span class="nav-badge-pill" id="ticketNavBadge">Ativos</span>
+        </a>
+
+        <a href="#dashboard" class="nav-tab-link staff-only" data-tab="dashboard" id="navLinkDashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard Mensal</span>
+        </a>
+
+        <a href="#kb" class="nav-tab-link staff-only" data-tab="kb" id="navLinkKB">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <span>Soluções & KB</span>
+        </a>
+
+        <div class="nav-section-title admin-only">Gestão & Auditoria</div>
+
+        <a href="#management" class="nav-tab-link admin-only" data-tab="management" id="navLinkManagement">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Gestão & Controle</span>
+        </a>
+      </nav>
+
+      <!-- Sessão do Usuário Autenticado & Logout -->
+      <div class="sidebar-footer">
+        <div class="user-session-card">
+          <div class="user-session-info">
+            <img src="" id="sidebarUserAvatar" class="avatar-sm" alt="Avatar">
+            <div class="user-session-text">
+              <strong id="sidebarUserName">Carregando...</strong>
+              <span id="sidebarUserRole" class="role-badge role-admin">ADMIN</span>
+            </div>
+          </div>
+          <button id="btnLogout" class="btn-logout" title="Sair do sistema">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Sair</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main class="app-main">
+      <!-- Topbar Superior -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <h1 class="page-title" id="pageMainHeading">Central de Suporte & Assistência Técnica</h1>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Botão Sair / Logout -->
+          <button id="topbarBtnLogout" class="btn-icon text-danger" title="Sair da Conta">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+
+          <!-- Alternar Tema Dark/Light -->
+          <button id="themeToggleBtn" class="btn-icon" title="Alternar Modo Escuro / Claro">
+            <i class="fa-solid fa-sun"></i>
+          </button>
+
+          <!-- Perfil do Usuário Logado -->
+          <div class="user-profile-badge">
+            <img src="" alt="Avatar" id="currentUserAvatar" class="avatar-sm">
+            <div class="user-profile-info">
+              <span class="user-name-text" id="currentUserName">Carregando...</span>
+              <span class="role-badge" id="currentUserRole">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Área de Visualização das Abas -->
+      <div class="app-viewport">
+
+        <!-- ========================================== -->
+        <!-- ABA 1: FEED E TABELA DE CHAMADOS           -->
+        <!-- ========================================== -->
+        <section id="tab-tickets" class="app-tab-content active">
+          <div class="section-header-bar">
+            <div>
+              <h2><i class="fa-solid fa-list-check text-primary"></i> Painel de Chamados de Suporte</h2>
+              <p class="text-secondary text-xs">Visualize, acompanhe e atenda ocorrências de informática e manutenção em tempo real.</p>
+            </div>
+            <div class="header-actions-group">
+              <span class="badge badge-counter" id="ticketResultsCount">Calculando...</span>
+              <button id="btnClearAllTickets" class="btn btn-outline btn-sm admin-only" title="Zerar todos os chamados da base" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+                <i class="fa-solid fa-trash-can"></i> Limpar Chamados
+              </button>
+              <button id="btnOpenNewTicket" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i> Abrir Novo Chamado
+              </button>
+            </div>
+          </div>
+
+          <!-- Barra de Filtros e Busca -->
+          <div class="filter-bar">
+            <div class="search-box-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="ticketSearchInput" class="search-input" placeholder="Pesquisar por título, protocolo, solicitante ou solução...">
+            </div>
+
+            <select id="filterStatus" class="filter-select">
+              <option value="all">Todos os Status</option>
+              <option value="aberto">🟡 Abertos</option>
+              <option value="em_atendimento">🔵 Em Atendimento</option>
+              <option value="concluido">🟢 Concluídos (Com Solução)</option>
+              <option value="cancelado">🔴 Cancelados</option>
+            </select>
+
+            <select id="filterPriority" class="filter-select">
+              <option value="all">Todas as Prioridades</option>
+              <option value="critica">🔥 Crítica</option>
+              <option value="alta">⚡ Alta</option>
+              <option value="media">🔹 Média</option>
+              <option value="baixa">☕ Baixa</option>
+            </select>
+
+            <select id="filterSector" class="filter-select">
+              <!-- Populado dinamicamente -->
+            </select>
+          </div>
+
+          <!-- Lista de Cartões de Chamados -->
+          <div class="tickets-grid" id="ticketsContainer">
+            <!-- Cards inseridos dinamicamente por app.js -->
+          </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- ABA 2: DASHBOARD DOS TIPOS DE PROBLEMAS    -->
+        <!-- MAPEANDO MÊS A MÊS                         -->
+        <!-- ========================================== -->
+        <section id="tab-dashboard" class="app-tab-content">
+          <div class="section-header-bar">
+            <div>
+              <h2><i class="fa-solid fa-chart-column text-accent"></i> Dashboard Analítico: Tipos de Problemas Mês a Mês</h2>
+              <p class="text-secondary text-xs">Mapeamento sazonal detalhado para tomada de decisões, SLA e manutenção preventiva da TI.</p>
+            </div>
+
+            <div class="header-actions-group">
+              <button id="btnExportDashReport" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-file-arrow-down"></i> Exportar Dados (CSV)
+              </button>
+            </div>
+          </div>
+
+          <!-- Controles de Período e Tipo de Gráfico -->
+          <div class="dashboard-controls">
+            <div class="dash-filter-group">
+              <div class="form-group mb-0">
+                <select id="dashYearSelect" class="filter-select font-semibold">
+                  <option value="2026" selected>📅 Ano 2026 (Atual)</option>
+                  <option value="2025">📅 Ano 2025</option>
+                </select>
+              </div>
+
+              <div class="form-group mb-0">
+                <select id="dashSectorSelect" class="filter-select font-semibold">
+                  <!-- Populado dinamicamente -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Alternador de Estilo do Gráfico Principal -->
+            <div class="chart-type-toggle">
+              <button class="chart-type-btn active" data-chart-type="bar" title="Barras Comparativas Agrupadas">
+                <i class="fa-solid fa-chart-simple"></i> Barras Agrupadas
+              </button>
+              <button class="chart-type-btn" data-chart-type="line" title="Linhas de Tendência Mensal">
+                <i class="fa-solid fa-chart-line"></i> Linhas & Tendência
+              </button>
+              <button class="chart-type-btn" data-chart-type="stacked" title="Barras Empilhadas por Mês">
+                <i class="fa-solid fa-bars-staggered"></i> Empilhado
+              </button>
+            </div>
+          </div>
+
+          <!-- Cards de Indicadores Chave (KPIs) -->
+          <div class="kpis-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-indigo"><i class="fa-solid fa-ticket-simple"></i></div>
+              <div class="kpi-content">
+                <span class="kpi-label">Total de Chamados</span>
+                <span class="kpi-value" id="kpiTotalTickets">0</span>
+                <span class="kpi-subtitle">no período selecionado</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-emerald"><i class="fa-solid fa-check-double"></i></div>
+              <div class="kpi-content">
+                <span class="kpi-label">Taxa de Resolução</span>
+                <span class="kpi-value" id="kpiResolvedRate">0%</span>
+                <span class="kpi-subtitle" id="kpiResolvedCount">0 concluídos</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-cyan"><i class="fa-solid fa-stopwatch"></i></div>
+              <div class="kpi-content">
+                <span class="kpi-label">Tempo Médio (MTTR)</span>
+                <span class="kpi-value" id="kpiAvgResolutionTime">0h</span>
+                <span class="kpi-subtitle">tempo de solução técnica</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-rose"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <div class="kpi-content">
+                <span class="kpi-label">Chamados Críticos</span>
+                <span class="kpi-value" id="kpiCriticalTickets">0</span>
+                <span class="kpi-subtitle">prioridade Alta / Crítica</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-amber"><i class="fa-solid fa-fire-flame-curved"></i></div>
+              <div class="kpi-content">
+                <span class="kpi-label">Problema Mais Incidente</span>
+                <span class="kpi-value text-xs font-bold" id="kpiTopProblem" style="font-size: 1rem;">Nenhum</span>
+                <span class="kpi-subtitle" id="kpiTopProblemCount">0 ocorrências</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gráficos Principais -->
+          <div class="charts-grid-main">
+            <!-- Gráfico Grande: Tipos de Problemas Mês a Mês -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3><i class="fa-solid fa-chart-line text-primary"></i> Mapeamento Mensal por Tipo de Problema (Janeiro a Dezembro)</h3>
+                <span class="text-muted text-xs"><i class="fa-solid fa-hand-pointer"></i> Clique nas legendas para filtrar</span>
+              </div>
+              <div class="chart-container-large">
+                <canvas id="chartMonthlyProblems"></canvas>
+              </div>
+            </div>
+
+            <!-- Gráfico de Rosca: Distribuição Percentual dos Tipos de Problemas -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3><i class="fa-solid fa-chart-pie text-accent"></i> Distribuição Total por Categoria</h3>
+              </div>
+              <div class="chart-container-donut">
+                <canvas id="chartDistribution"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gráfico Secundário: Chamados por Setor -->
+          <div class="charts-row-secondary">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3><i class="fa-solid fa-building text-warning"></i> Volume de Demandas por Setor</h3>
+              </div>
+              <div class="chart-container-horizontal">
+                <canvas id="chartSectors"></canvas>
+              </div>
+            </div>
+
+            <!-- Card de Insights Automatizados -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3><i class="fa-solid fa-lightbulb text-warning"></i> Diagnóstico & Insights da TI</h3>
+              </div>
+              <div class="insights-list" style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.88rem; line-height: 1.5; color: var(--text-secondary);">
+                <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: var(--radius-md); border-left: 3px solid var(--primary);">
+                  <strong>Picos Sazonais Identificados:</strong> Problemas de rede e falhas de hardware concentram-se no 2º e 3º trimestres, recomendando antecipação de compras de peças sobressalentes.
+                </div>
+                <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: var(--radius-md); border-left: 3px solid var(--accent-emerald);">
+                  <strong>Eficácia de Solução Técnica:</strong> 100% dos chamados concluídos possuem relatório técnico detalhado e tempo de atendimento registrado na Base de Conhecimento.
+                </div>
+                <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: var(--radius-md); border-left: 3px solid var(--accent-cyan);">
+                  <strong>Recomendação Preventiva:</strong> Implementação de rotinas de limpeza periódica de impressoras e nobreaks para mitigar ocorrências recorrentes no setor de Operações e Financeiro.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Matriz / Tabela Térmica de Cruzamento Mês a Mês -->
+          <div class="heatmap-card">
+            <div class="chart-header">
+              <div>
+                <h3><i class="fa-solid fa-table-cells text-primary"></i> Matriz Detalhada: Tipo de Problema x Mês do Ano</h3>
+                <p class="text-secondary text-xs">Visão numérica e mapa de calor consolidado mês a mês com percentual de incidência total.</p>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="heatmap-table">
+                <thead>
+                  <tr>
+                    <th class="sticky-col">Tipo de Problema</th>
+                    <th>Jan</th>
+                    <th>Fev</th>
+                    <th>Mar</th>
+                    <th>Abr</th>
+                    <th>Mai</th>
+                    <th>Jun</th>
+                    <th>Jul</th>
+                    <th>Ago</th>
+                    <th>Set</th>
+                    <th>Out</th>
+                    <th>Nov</th>
+                    <th>Dez</th>
+                    <th class="text-center">Total</th>
+                    <th class="text-center">% Relativa</th>
+                  </tr>
+                </thead>
+                <tbody id="heatmapTableBody">
+                  <!-- Populado dinamicamente -->
+                </tbody>
+                <tfoot id="heatmapTableFooter">
+                  <!-- Totais mensais -->
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- ABA 3: SOLUÇÕES APLICADAS & BASE DE DADOS  -->
+        <!-- ========================================== -->
+        <section id="tab-kb" class="app-tab-content">
+          <div class="section-header-bar">
+            <div>
+              <h2><i class="fa-solid fa-book-bookmark text-success"></i> Base de Conhecimento: Soluções Aplicadas</h2>
+              <p class="text-secondary text-xs">Repositório com o histórico de soluções técnicas executadas para resolver problemas anteriores.</p>
+            </div>
+          </div>
+
+          <div class="kb-grid" id="kbContainer">
+            <!-- Populado dinamicamente -->
+          </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- ABA 4: GESTÃO & CONTROLE (ADMIN EXCLUSIVO) -->
+        <!-- ========================================== -->
+        <section id="tab-management" class="app-tab-content admin-only">
+          <div class="section-header-bar">
+            <div>
+              <h2><i class="fa-solid fa-shield-halved text-primary"></i> Painel de Gestão e Controle Administrativo</h2>
+              <p class="text-secondary text-xs">Gerencie usuários, cargos, permissões, setores da empresa e tipos de problemas com SLAs.</p>
+            </div>
+          </div>
+
+          <!-- Sub-abas da Gestão -->
+          <div class="admin-subnav">
+            <button class="admin-subnav-btn active" data-subtab="users">
+              <i class="fa-solid fa-users-gear"></i> Usuários & Permissões
+            </button>
+            <button class="admin-subnav-btn" data-subtab="sectors">
+              <i class="fa-solid fa-building-user"></i> Setores da Empresa
+            </button>
+            <button class="admin-subnav-btn" data-subtab="problem-types">
+              <i class="fa-solid fa-tags"></i> Tipos de Problemas & SLAs
+            </button>
+          </div>
+
+          <!-- Subtab Usuários -->
+          <div id="subtab-users" class="admin-subtab-pane active">
+            <div class="admin-table-card">
+              <div class="section-header-bar mb-2">
+                <h3>Usuários Cadastrados</h3>
+                <button id="btnOpenNewUserModal" class="btn btn-primary btn-sm">
+                  <i class="fa-solid fa-user-plus"></i> Novo Usuário
+                </button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nome / E-mail</th>
+                      <th>Perfil de Acesso</th>
+                      <th>Setor</th>
+                      <th>Cargo</th>
+                      <th>Telefone</th>
+                      <th class="text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableUsersBody">
+                    <!-- Populado dinamicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab Setores -->
+          <div id="subtab-sectors" class="admin-subtab-pane">
+            <div class="admin-table-card">
+              <div class="section-header-bar mb-2">
+                <h3>Setores e Departamentos</h3>
+                <button id="btnOpenNewSectorModal" class="btn btn-primary btn-sm">
+                  <i class="fa-solid fa-plus"></i> Cadastrar Setor
+                </button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nome do Setor</th>
+                      <th>Código</th>
+                      <th>Chamados Vinculados</th>
+                      <th>Cor de Identificação</th>
+                      <th class="text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableSectorsBody">
+                    <!-- Populado dinamicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab Tipos de Problemas -->
+          <div id="subtab-problem-types" class="admin-subtab-pane">
+            <div class="admin-table-card">
+              <div class="section-header-bar mb-2">
+                <h3>Classificação dos Tipos de Problemas</h3>
+                <button id="btnOpenNewProblemTypeModal" class="btn btn-primary btn-sm">
+                  <i class="fa-solid fa-plus"></i> Cadastrar Tipo de Problema
+                </button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nome da Ocorrência</th>
+                      <th>Categoria</th>
+                      <th>SLA Sugerido</th>
+                      <th>Incidência Total</th>
+                      <th class="text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableProblemTypesBody">
+                    <!-- Populado dinamicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL: ABERTURA DE NOVO CHAMADO            -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="modalNewTicket">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-square-plus text-primary"></i> Abertura de Chamado para TI / Assistência</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="formNewTicket">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="ticketTitle">Assunto / Título do Chamado *</label>
+            <input type="text" id="ticketTitle" class="form-control" placeholder="Ex: Impressora fiscal travando na emissão de NF" required>
+          </div>
+
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="ticketSectorSelect">Setor Solicitante *</label>
+              <select id="ticketSectorSelect" class="form-control" required>
+                <!-- Populado dinamicamente -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="ticketProblemTypeSelect">Tipo de Problema *</label>
+              <select id="ticketProblemTypeSelect" class="form-control" required>
+                <!-- Populado dinamicamente -->
+              </select>
+            </div>
+          </div>
+
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="ticketPrioritySelect">Nível de Prioridade *</label>
+              <select id="ticketPrioritySelect" class="form-control" required>
+                <option value="baixa">☕ Baixa (Dúvida / Solicitação de software)</option>
+                <option value="media" selected>🔹 Média (Impacto pontual sem parada total)</option>
+                <option value="alta">⚡ Alta (Setor impactado / Equipamento inoperante)</option>
+                <option value="critica">🔥 Crítica (Operação ou Faturamento paralisado)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="ticketAssetTag">Patrimônio / Ativo (Opcional)</label>
+              <input type="text" id="ticketAssetTag" class="form-control" placeholder="Ex: PAT-4022 ou NOTE-FIN-01">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ticketDescription">Descrição Detalhada da Ocorrência *</label>
+            <textarea id="ticketDescription" class="form-control" rows="4" placeholder="Descreva os sintomas observados, mensagens de erro exibidas e desde quando o problema está ocorrendo..." required></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-close-modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-paper-plane"></i> Registrar Chamado
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL: DETALHES DO CHAMADO & SOLUÇÃO       -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="modalTicketDetails">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <h3 id="modalTicketTitle">Chamado #TICK-1001</h3>
+          <div id="modalTicketBadges" style="display: flex; gap: 0.35rem;"></div>
+        </div>
+        <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Ações Administrativas / Técnicas Rápidas -->
+        <div id="modalTicketAdminActions"></div>
+
+        <!-- Informações Gerais do Chamado -->
+        <div id="modalTicketInfo"></div>
+
+        <!-- Seção da Solução Técnica Aplicada -->
+        <div id="modalTicketSolutionSection"></div>
+
+        <!-- Histórico e Timeline -->
+        <div class="timeline-section">
+          <h4 style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-timeline text-primary"></i> Linha do Tempo & Histórico
+          </h4>
+          <div id="modalTicketTimeline"></div>
+
+          <!-- Enviar Mensagem no Chamado -->
+          <form id="formAddComment" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+            <input type="text" id="commentInput" class="form-control" placeholder="Adicionar observação ou mensagem de acompanhamento..." required>
+            <button type="submit" class="btn btn-outline btn-sm">
+              <i class="fa-solid fa-comment-dots"></i> Enviar
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline btn-close-modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL: CADASTRAR NOVO USUÁRIO              -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="modalNewUser">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-plus text-primary"></i> Cadastrar Novo Usuário</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="formNewUser">
+        <div class="modal-body">
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="newUserName">Nome Completo *</label>
+              <input type="text" id="newUserName" class="form-control" placeholder="Ex: Ana Clara Ribeiro" required>
+            </div>
+
+            <div class="form-group">
+              <label for="newUserUsername">Nome de Usuário (Login) *</label>
+              <input type="text" id="newUserUsername" class="form-control" placeholder="Ex: anaclara ou ana.ribeiro" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="newUserEmail">E-mail Corporativo</label>
+            <input type="email" id="newUserEmail" class="form-control" placeholder="ana.ribeiro@empresa.com">
+          </div>
+
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="newUserRole">Perfil de Permissão *</label>
+              <select id="newUserRole" class="form-control" required>
+                <option value="user" selected>👤 Usuário Comum (Abre chamados)</option>
+                <option value="tech">🔧 Técnico de Suporte (Aplica soluções)</option>
+                <option value="admin">🛡️ Administrador (Gestão total)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="newUserSectorSelect">Setor de Atuação *</label>
+              <select id="newUserSectorSelect" class="form-control" required>
+                <!-- Populado dinamicamente -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="newUserJobTitle">Cargo / Função *</label>
+            <input type="text" id="newUserJobTitle" class="form-control" placeholder="Ex: Analista de Recursos Humanos" required>
+          </div>
+
+          <div class="form-group">
+            <label for="newUserPassword">Senha de Acesso Inicial *</label>
+            <input type="password" id="newUserPassword" class="form-control" placeholder="Defina a senha para este usuário (mínimo 4 caracteres)" required minlength="4">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-close-modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Usuário</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL: EDITAR USUÁRIO / ADMINISTRADOR      -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="modalEditUser">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-pen text-primary"></i> Editar Cadastro de Usuário</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="formEditUser">
+        <input type="hidden" id="editUserId">
+        <div class="modal-body">
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="editUserName">Nome Completo *</label>
+              <input type="text" id="editUserName" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label for="editUserUsername">Nome de Usuário (Login) *</label>
+              <input type="text" id="editUserUsername" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editUserEmail">E-mail Corporativo</label>
+            <input type="email" id="editUserEmail" class="form-control">
+          </div>
+
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="editUserRole">Perfil de Permissão *</label>
+              <select id="editUserRole" class="form-control" required>
+                <option value="user">👤 Usuário Comum (Abre chamados)</option>
+                <option value="tech">🔧 Técnico de Suporte (Aplica soluções)</option>
+                <option value="admin">🛡️ Administrador (Gestão total)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="editUserSectorSelect">Setor de Atuação *</label>
+              <select id="editUserSectorSelect" class="form-control" required>
+                <!-- Populado dinamicamente -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editUserJobTitle">Cargo / Função *</label>
+            <input type="text" id="editUserJobTitle" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="editUserPassword">Nova Senha (deixe em branco para manter a atual)</label>
+            <input type="password" id="editUserPassword" class="form-control" placeholder="Digite apenas se desejar trocar a senha">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-close-modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL: CADASTRAR NOVO SETOR                -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="modalNewSector">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-building text-primary"></i> Cadastrar Novo Setor</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="formNewSector">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="newSectorName">Nome do Setor *</label>
+            <input type="text" id="newSectorName" class="form-control" placeholder="Ex: Marketing & Design" required>
+          </div>
+
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="newSectorCode">Código / Sigla *</label>
+              <input type="text" id="newSectorCode" class="form-control" placeholder="Ex: MKT" required>
+            </div>
+
+            <div class="form-group">
+              <label for="newSectorColor">Cor de Destaque *</label>
+              <input type="color" id="newSectorColor" class="form-control" value="#6366f1" style="height: 42px; cursor: pointer;">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-close-modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Setor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL: CADASTRAR NOVO TIPO DE PROBLEMA     -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="modalNewProblemType">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-tag text-primary"></i> Cadastrar Tipo de Problema</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="formNewProblemType">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="newProbName">Nome da Ocorrência *</label>
+            <input type="text" id="newProbName" class="form-control" placeholder="Ex: Falha em Certificado Digital" required>
+          </div>
+
+          <div class="row-2-cols">
+            <div class="form-group">
+              <label for="newProbCategory">Categoria *</label>
+              <input type="text" id="newProbCategory" class="form-control" placeholder="Ex: Segurança & Acesso" required>
+            </div>
+
+            <div class="form-group">
+              <label for="newProbSla">SLA Sugerido (Horas) *</label>
+              <input type="number" id="newProbSla" class="form-control" value="4" min="1" max="72" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="newProbColor">Cor do Gráfico *</label>
+            <input type="color" id="newProbColor" class="form-control" value="#f59e0b" style="height: 42px; cursor: pointer;">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-close-modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Tipo de Problema</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Container de Toasts de Notificação -->
+  <div id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="config.js?v=8"></script>
+  <script src="mock-data.js?v=8"></script>
+  <script src="chart-dashboard.js?v=8"></script>
+  <script src="app.js?v=8"></script>
+</body>
+</html>

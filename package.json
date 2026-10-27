@@ -1,0 +1,21 @@
+{
+  "name": "sistema-ti",
+  "version": "1.0.0",
+  "description": "Sistema interno para empresas com fluxo completo de abertura de chamados, suporte técnico de TI, controle administrativo e dashboard analítico de inteligência operacional com **mapeamento mês a mês dos tipos de problemas**.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node -e \"require('./src/database/seeders').runSeeders()\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0"
+  }
+}
